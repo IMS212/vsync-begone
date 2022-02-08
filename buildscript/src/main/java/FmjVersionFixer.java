@@ -32,6 +32,7 @@ public class FmjVersionFixer implements Processor {
 					fabricModJson = gson.fromJson(reader, JsonObject.class);
 				}
         
+        System.out.println("Invoke");
 				fabricModJson.addProperty("version", parent.getVersion());
         sink.sink(() -> GsonUtil.toIs(fabricModJson, gson), e.id);
 			} else {

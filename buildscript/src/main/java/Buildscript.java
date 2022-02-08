@@ -1,35 +1,23 @@
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 import java.util.function.Consumer;
-import java.nio.file.NoSuchFileException;
 
-import io.github.coolcrabs.brachyura.compiler.java.JavaCompilation;
-import io.github.coolcrabs.brachyura.compiler.java.JavaCompilationResult;
-import io.github.coolcrabs.brachyura.dependency.JavaJarDependency;
+import org.tinylog.Logger;
+
 import io.github.coolcrabs.brachyura.fabric.FabricLoader;
 import io.github.coolcrabs.brachyura.fabric.FabricMaven;
-import io.github.coolcrabs.brachyura.ide.IdeProject;
-import io.github.coolcrabs.brachyura.ide.IdeProject.RunConfig;
 import io.github.coolcrabs.brachyura.mappings.Namespaces;
-import io.github.coolcrabs.brachyura.maven.MavenId;
 import io.github.coolcrabs.brachyura.processing.ProcessorChain;
-import io.github.coolcrabs.brachyura.processing.sinks.DirectoryProcessingSink;
-import io.github.coolcrabs.brachyura.project.Task;
-import io.github.coolcrabs.brachyura.util.JvmUtil;
-import io.github.coolcrabs.brachyura.util.Util;
 import net.fabricmc.accesswidener.AccessWidenerReader;
 import net.fabricmc.accesswidener.AccessWidenerVisitor;
 import net.fabricmc.mappingio.tree.MappingTree;
 
-public class Buildscript extends MultiSrcDirFabricProject {
+public class Buildscript extends SingleSrcDirFabricProject {
   // Version which your mod targetting
   @Override
   public String getMcVersion() {
@@ -81,56 +69,7 @@ public class Buildscript extends MultiSrcDirFabricProject {
     return 17;
   }
   
-  ////////////////////////////////////////////
-  // You rarely need modify part below here //
-  ////////////////////////////////////////////
-  @Override
-  public Path getSrcDir() {
-    throw new UnsupportedOperationException();
-  }
-  
-  @Override
-  public Consumer<AccessWidenerVisitor> getAw() {
-    return v -> {
-      try {
-        new AccessWidenerReader(v).read(
-          Files.newBufferedReader(
-            this.getResourcesDir().resolve(this.getModId() + ".accesswidener")
-          ), 
-          Namespaces.NAMED
-        );
-      } catch (IOException e) {
-        // Only if its not NoSuchFileException
-        // because its can be just the mod writer dont need AW
-        if (!(e instanceof NoSuchFileException)) {
-          throw new UncheckedIOException(e);
-        }
-      }
-    };
-  }
-  
-  @Override
-  public List<Path> getHeaderPaths(String subdir) {
-    List<Path> r = new ArrayList<>();
-    // Append header here if you dont know ignore this im also dont know :)
-    return r;
-  }
-  
-  @Override
-  public List<Path> getCompilePaths(String subdir) {
-    List<Path> r = new ArrayList<>();
-    
-    r.add(this.getProjectDir().resolve("src")
-                              .resolve("main")
-                              .resolve(subdir));
-    
-    for (int i = 0; i < r.size(); i++) 
-      if (!Files.exists(r.get(i))) 
-        r.remove(i);
-    
-    return r;
-  }
-  
+  // JVM flags for each minecraft server and minecraft client
   public List<String> getClientVMArgs() {
     List<String> args = new ArrayList<>();
     
@@ -210,9 +149,34 @@ public class Buildscript extends MultiSrcDirFabricProject {
     return args;
   }
   
+  ////////////////////////////////////////////
+  // You rarely need modify part below here //
+  ////////////////////////////////////////////
+  @Override
+  public Consumer<AccessWidenerVisitor> getAw() {
+    return v -> {
+      Path path = this.getResourcesDir().resolve(this.getModId() + ".accesswidener");
+      try {
+        new AccessWidenerReader(v).read(
+          Files.newBufferedReader(
+            path
+          ), 
+          Namespaces.NAMED
+        );
+      } catch (IOException e) {
+        // Assuming NoSuchFileException mea the writer dont need AW
+        if (e instanceof NoSuchFileException) {
+          Logger.warn(String.format("Can't find accesswidener at %s (assumming you dont use access wideners or ignore if you dont know what access widener is)", path.toString()));
+        } else {
+          throw new UncheckedIOException(e);
+        }
+      }
+    };
+  }
+  
   @Override
   public Path getBuildJarPath() {
-    return getBuildLibsDir().resolve(getModId() + "-" + getVersion() + "-" + getReleaseType() + ".jar");
+    return this.getBuildLibsDir().resolve(this.getModId() + "-" + this.getVersion() + "-" + this.getReleaseType() + ".jar");
   }
   
   @Override
