@@ -1,4 +1,5 @@
-# brachyura-example-mod
+# Begone Vsync
 
-Not endrosed by brachyura (https://github.com/CoolCrabs/brachyura)
-and this unofficial
+## Turns on Adaptive VSync on supported models
+
+#### based off Brachyura Example Mod (https://github.com/NickWilde263/brachyura-example-mod)
